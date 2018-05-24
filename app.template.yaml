@@ -35,6 +35,6 @@ Resources:
           Type: S3
           Properties:
             Bucket: !Ref S3Bucket
-            Events: !Split [',',!Ref EventTypes]
+            Events: !Ref EventTypes
       Policies:
           - CloudFrontFullAccess
