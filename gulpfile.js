@@ -20,52 +20,59 @@ const paths = {
 // pull in the project TypeScript config
 const tsProject = ts.createProject('tsconfig.json');
 
-gulp.task('clean', () => {
+const clean = () => {
   return del([paths.dist, paths.tmp]);
-});
+}
+exports.clean = clean;
 
-gulp.task('build', ['build:clean', 'build:transpile'], () => {
-  return del(`${paths.dist}/package*.json`)
-});
+const packageInit = () => {
+  return gulp.src('*.*', {
+      read: false
+    })
+    .pipe(gulp.dest(paths.tmp));
+}
+exports.packageInit = packageInit;
 
-gulp.task('build:clean', ['build:modules'], () => {
-  return del(`${paths.dist}/package*.json`)
-});
-
-gulp.task('build:modules', () => {
+const packageNpm = () => {
   return gulp.src('package.json')
     .pipe(gulp.dest(paths.dist))
     .pipe(
       install({
         production: true
       })
-    )
-});
+    );
+}
+exports.packageNpm = packageNpm;
 
-gulp.task('build:transpile', () => {
+const cleanNpm = () => {
+  return del(`${paths.dist}/package*.json`)
+};
+exports.cleanNpm = cleanNpm;
+
+const packageTranspile = () => {
   const tsResult = tsProject.src().pipe(tsProject());
   return tsResult.js.pipe(gulp.dest(paths.dist));
-});
+};
+exports.packageTranspile = packageTranspile;
 
-gulp.task('build:temp', () => {
-  return gulp.src('*.*', {
-      read: false
-    })
-    .pipe(gulp.dest(paths.tmp));
-})
-
-gulp.task('package', ['build:temp', 'build'], run(`aws cloudformation package \
+const packageCloudFormation = () => {
+  return run(`aws cloudformation package \
 --template app.template.yaml \
 --s3-bucket ${vars.s3BucketName} \
---output-template ${paths.tmp}/packaged-sam.yaml`));
+--output-template ${paths.tmp}/packaged-sam.yaml`)();
+}
+exports.packageCloudFormation = packageCloudFormation;
 
-gulp.task('deploy', run(`aws cloudformation deploy \
+const package = gulp.series(clean, gulp.parallel(packageInit, packageNpm, packageTranspile), cleanNpm, packageCloudFormation);
+exports.package = package;
+
+const deployCloudFormation = () => {
+  return run(`aws cloudformation deploy \
 --template-file ${paths.tmp}/packaged-sam.yaml \
 --stack-name ${vars.cloudFormationStackName} \
---capabilities CAPABILITY_IAM`));
+--capabilities CAPABILITY_IAM`)();
+}
+exports.deployCloudFormation = deployCloudFormation;
 
-gulp.task('watch', ['build:transpile'], () => {
-  gulp.watch('src/**/*.ts', ['scripts']);
-});
-
-gulp.task('default', ['watch']);
+const deploy = gulp.series(package, deployCloudFormation);
+exports.deploy = deploy;
