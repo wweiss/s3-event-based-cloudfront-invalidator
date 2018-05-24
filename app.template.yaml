@@ -1,0 +1,39 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+
+Parameters:
+  S3Bucket:
+    Type: String
+    Description: Name of the S3 Bucket to watch for events.
+  EventTypes:
+    Type: String
+    Description: Comma delimited list of S3 event types that should trigger the invalidation.
+  InvalidationPaths:
+    Type: String
+    Description: (Optional) If a fixed key is not defined, this prefix will be added to the dynamic key.
+  DistributionId:
+    Type: String
+    Description: (Optional) If a fixed key is not defined, this suffix will be appended to the dynamic key.
+
+Resources:
+  EventWriter:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: nodejs8.10
+      CodeUri: ./dist
+      Handler: S3EventHandler.handler
+      Tracing: Active
+      MemorySize: 512
+      Timeout: 60
+      Environment:
+        Variables:
+          DISTRIBUTION_ID: !Ref DistributionId
+          INVALIDATION_PATHS: !Ref InvalidationPaths
+      Events:
+        S3Changes:
+          Type: S3
+          Properties:
+            Bucket: !Ref S3Bucket
+            Events: !Split [',',!Ref EventTypes]
+      Policies:
+          - CloudFrontFullAccess
