@@ -6,14 +6,15 @@ Parameters:
     Type: String
     Description: Name of the S3 Bucket to watch for events.
   EventTypes:
-    Type: String
+    Type: CommaDelimitedList
     Description: Comma delimited list of S3 event types that should trigger the invalidation.
   InvalidationPaths:
+    Default: ''
     Type: String
-    Description: (Optional) If a fixed key is not defined, this prefix will be added to the dynamic key.
+    Description: (Optional) A comma delimited list of paths to invalidate.  If not set the key from the S3 event will be used.
   DistributionId:
     Type: String
-    Description: (Optional) If a fixed key is not defined, this suffix will be appended to the dynamic key.
+    Description: The CloudFront distribution id to create the invalidation on.
 
 Resources:
   EventWriter:
