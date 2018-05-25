@@ -8,5 +8,27 @@ const cf = new CloudFront();
 const config = new AppConfig();
 
 export const handler: S3Handler = (event: S3Event) => {
+  const paths = config.invalidationPaths;
+  if (paths.length < 1) {
+    event.Records.map(rec => paths.push(rec.s3.object.key));
+  }
 
+  const params = {
+    DistributionId: config.distributionId,
+    InvalidationBatch: {
+      CallerReference: '',
+      Paths: {
+        Quantity: paths.length,
+        Items: paths
+      }
+    }
+  };
+
+  cf.createInvalidation(params, (err, data) => {
+    if (err) {
+      console.error('Error creating invalidation: ', err);
+    } else {
+      console.info('Invalidation created successfully: ', data);
+    }
+  });
 };
